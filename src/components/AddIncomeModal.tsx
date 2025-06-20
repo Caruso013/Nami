@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -8,9 +7,10 @@ import { X } from 'lucide-react';
 interface AddIncomeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAdded?: () => void; // <-- adicione esta linha
 }
 
-const AddIncomeModal = ({ isOpen, onClose }: AddIncomeModalProps) => {
+const AddIncomeModal = ({ isOpen, onClose, onAdded }: AddIncomeModalProps) => {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -46,6 +46,7 @@ const AddIncomeModal = ({ isOpen, onClose }: AddIncomeModalProps) => {
       setCategory('');
       setDescription('');
       onClose();
+      if (onAdded) onAdded(); // <-- chame aqui!
     }
     setLoading(false);
   };

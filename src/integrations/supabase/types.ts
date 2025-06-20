@@ -11,25 +11,25 @@ export type Database = {
     Tables: {
       budgets: {
         Row: {
-          category: string
-          created_at: string
           id: string
-          limit_amount: number
           user_id: string
+          category: string
+          limit_amount: number
+          created_at: string
         }
         Insert: {
-          category: string
-          created_at?: string
           id?: string
-          limit_amount: number
           user_id: string
+          category: string
+          limit_amount: number
+          created_at?: string
         }
         Update: {
-          category?: string
-          created_at?: string
           id?: string
-          limit_amount?: number
           user_id?: string
+          category?: string
+          limit_amount?: number
+          created_at?: string
         }
         Relationships: []
       }
@@ -43,6 +43,8 @@ export type Database = {
           id: string
           type: string
           user_id: string
+          paymentType?: string | null
+          cardId?: string | null
         }
         Insert: {
           amount: number
@@ -53,6 +55,8 @@ export type Database = {
           id?: string
           type: string
           user_id: string
+          paymentType?: string | null
+          cardId?: string | null
         }
         Update: {
           amount?: number
@@ -63,6 +67,38 @@ export type Database = {
           id?: string
           type?: string
           user_id?: string
+          paymentType?: string | null
+          cardId?: string | null
+        }
+        Relationships: []
+      }
+      credit_cards: {
+        Row: {
+          id: string
+          user_id: string
+          nameCard: string
+          credit_limit: number
+          due_date: number
+          best_day: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          nameCard: string
+          credit_limit: number
+          due_date: number
+          best_day: number
+          created_at?: string
+        }
+        Update: {
+          id: string
+          user_id: string
+          nameCard: string
+          credit_limit: number
+          due_date: number
+          best_day: number
+          created_at: string
         }
         Relationships: []
       }
@@ -93,7 +129,7 @@ export type Tables<
   }
     ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never,
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
   ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
@@ -192,3 +228,13 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+type CreditCard = {
+  id: string;
+  user_id: string;
+  nameCard: string;
+  credit_limit: number;
+  due_date: number;
+  best_day: number;
+  created_at: string;
+};

@@ -1,20 +1,21 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface Transaction {
-  id: string;
+  id?: string;
   user_id: string;
-  type: 'income' | 'expense';
+  type: string;
   category: string;
   amount: number;
-  description?: string;
-  date: string;
-  created_at: string;
+  description?: string | null;
+  date?: string;
+  created_at?: string;
+  paymentType?: string | null;
+  cardId?: string | null;
 }
 
-export const useTransactions = () => {
+export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -153,6 +154,7 @@ export const useTransactions = () => {
     loading,
     addTransaction,
     deleteTransaction,
+    fetchTransactions,
     totalIncome,
     totalExpenses,
     balance,

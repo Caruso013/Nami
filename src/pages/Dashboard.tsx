@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { TrendingUp, TrendingDown, Plus, Minus, BarChart3, PieChart, LogOut, Download, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,19 +8,23 @@ import { useBudgets } from '@/hooks/useBudgets';
 import AddIncomeModal from '@/components/AddIncomeModal';
 import AddExpenseModal from '@/components/AddExpenseModal';
 import BudgetsTab from '@/components/BudgetsTab';
-import ExpenseChart from '@/components/ExpenseChart';
+import CreditCardsBlock from '@/components/CreditCardBlock';
 import AnalysisChart from '@/components/AnalysisChart';
 import DashboardStats from '@/components/DashboardStats';
 import { exportToCSV, generatePDFReport } from '@/utils/exportUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import ExpenseChart from '@/components/ExpenseChart';
+
 
 const Dashboard = () => {
   const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
+  const [cards, setCards] = useState([]);
   const { signOut, user } = useAuth();
   const { 
     transactions, 
+    fetchTransactions,
     totalIncome, 
     totalExpenses, 
     balance, 
@@ -76,7 +79,6 @@ const Dashboard = () => {
 
   const handleDeleteTransaction = async (id: string) => {
     const { error } = await deleteTransaction(id);
-    
     if (error) {
       toast({
         title: "Erro",
@@ -88,7 +90,18 @@ const Dashboard = () => {
         title: "Sucesso!",
         description: "Transação deletada com sucesso.",
       });
+      await fetchTransactions(); // <-- Atualiza a lista!
     }
+  };
+
+  const handleAddIncome = async (data) => {
+    await addIncome(data);
+    await fetchTransactions();
+  };
+
+  const handleAddExpense = async (data) => {
+    await addExpense(data);
+    await fetchTransactions();
   };
 
   if (loading) {
@@ -166,6 +179,7 @@ const Dashboard = () => {
           <TabsContent value="dashboard" className="space-y-6 sm:space-y-8">
             {/* Seção de Gráficos - Mobile Responsive */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
+              {/* Gráfico de Pizza */}
               <div className="nami-card p-4 sm:p-6 animate-fade-in">
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900">Gastos por Categoria</h3>
@@ -176,44 +190,64 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="nami-card p-4 sm:p-6 animate-fade-in">
-                <div className="flex items-center justify-between mb-4 sm:mb-6">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Controle de Orçamentos</h3>
-                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                </div>
-                <div className="space-y-3 max-h-64 sm:max-h-80 overflow-y-auto">
-                  {budgets.length > 0 ? (
-                    budgets.map((budget) => {
-                      const spent = expensesByCategory[budget.category] || 0;
-                      const percentage = (spent / budget.limit_amount) * 100;
-                      const isOverBudget = percentage >= 100;
-                      
-                      return (
-                        <div key={budget.id} className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs sm:text-sm font-medium truncate mr-2">{budget.category}</span>
-                            <span className={`text-xs sm:text-sm font-bold flex-shrink-0 ${isOverBudget ? 'text-red-600' : 'text-gray-700'}`}>
-                              {percentage.toFixed(1)}%
+              {/* Coluna da direita: Orçamentos em cima, Cartão embaixo */}
+              <div className="flex flex-col gap-6">
+                <div className="nami-card p-4 sm:p-6 animate-fade-in">
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Controle de Orçamentos</h3>
+                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                  </div>
+                  <div className="space-y-3 max-h-64 sm:max-h-80 overflow-y-auto">
+                    {budgets.length > 0 ? (
+                      budgets.map((budget) => {
+                        const spent = expensesByCategory[budget.category] || 0;
+                        const percentage = (spent / budget.limit_amount) * 100;
+                        const isOverBudget = percentage >= 100;
+                        
+                        return (
+                          <div key={budget.id} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs sm:text-sm font-medium truncate mr-2">{budget.category}</span>
+                              <span className={`text-xs sm:text-sm font-bold flex-shrink-0 ${isOverBudget ? 'text-red-600' : 'text-gray-700'}`}>
+                                {percentage.toFixed(1)}%
                             </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all duration-500 ${
+                                  isOverBudget ? 'bg-red-500' : percentage >= 80 ? 'bg-yellow-500' : 'bg-green-500'
+                                }`}
+                                style={{ width: `${Math.min(percentage, 100)}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-500">
+                              <span>R$ {spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                              <span>R$ {budget.limit_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full transition-all duration-500 ${
-                                isOverBudget ? 'bg-red-500' : percentage >= 80 ? 'bg-yellow-500' : 'bg-green-500'
-                              }`}
-                              style={{ width: `${Math.min(percentage, 100)}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-xs text-gray-500">
-                            <span>R$ {spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            <span>R$ {budget.limit_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-gray-500 text-center py-8 text-sm sm:text-base">Nenhum orçamento criado ainda</p>
-                  )}
+                        );
+                      })
+                    ) : (
+                      <p className="text-gray-500 text-center py-8 text-sm sm:text-base">Nenhum orçamento criado ainda</p>
+                    )}
+                  </div>
+                </div>
+                <div className="nami-card p-4 sm:p-6 animate-fade-in">
+                  <CreditCardsBlock
+                    expenses={
+                      transactions
+                        .filter(
+                          (t) =>
+                            t.type === 'expense' &&
+                            t.paymentType === 'credit' &&
+                            t.cardId 
+                        )
+                        .map((t) => ({
+                          card_id: t.cardId,
+                          amount: Number(t.amount),
+                        }))
+                    }
+                  />
                 </div>
               </div>
             </div>
@@ -297,14 +331,24 @@ const Dashboard = () => {
       <AddIncomeModal 
         isOpen={showAddIncomeModal}
         onClose={() => setShowAddIncomeModal(false)}
+        onAdded={fetchTransactions} // <-- adicione esta prop
       />
       
       <AddExpenseModal 
         isOpen={showAddExpenseModal}
         onClose={() => setShowAddExpenseModal(false)}
+        onAdded={fetchTransactions} // <-- adicione esta prop
       />
     </div>
   );
 };
 
 export default Dashboard;
+function addIncome(data: any) {
+  throw new Error('Function not implemented.');
+}
+
+function addExpense(data: any) {
+  throw new Error('Function not implemented.');
+}
+

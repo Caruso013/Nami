@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,21 +8,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useToast } from '@/hooks/use-toast';
 import { Minus } from 'lucide-react';
+import { useCreditCards } from '@/contexts/CreditCardContext';
 
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAdded?: () => void; // <-- adicione esta linha
 }
 
-const AddExpenseModal = ({ isOpen, onClose }: AddExpenseModalProps) => {
+const AddExpenseModal = ({ isOpen, onClose, onAdded }: AddExpenseModalProps) => {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
+  const [paymentType, setPaymentType] = useState('cash');
+  const [selectedCard, setSelectedCard] = useState('');
   
   const { addTransaction } = useTransactions();
   const { toast } = useToast();
+  const { cards } = useCreditCards();
 
   const expenseCategories = [
     'Alimentação',
@@ -57,6 +61,8 @@ const AddExpenseModal = ({ isOpen, onClose }: AddExpenseModalProps) => {
       amount: parseFloat(amount),
       description: description || undefined,
       date,
+      paymentType,
+      cardId: paymentType === 'credit' ? selectedCard : undefined,
     });
 
     if (error) {
@@ -71,12 +77,14 @@ const AddExpenseModal = ({ isOpen, onClose }: AddExpenseModalProps) => {
         description: "Despesa adicionada com sucesso.",
       });
       
-      // Reset form
       setAmount('');
       setCategory('');
       setDescription('');
       setDate(new Date().toISOString().split('T')[0]);
+      setPaymentType('cash');
+      setSelectedCard('');
       onClose();
+      if (onAdded) onAdded(); // <-- chame aqui!
     }
     
     setLoading(false);
@@ -143,6 +151,37 @@ const AddExpenseModal = ({ isOpen, onClose }: AddExpenseModalProps) => {
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label>Tipo de Pagamento</Label>
+            <select value={paymentType} onChange={e => setPaymentType(e.target.value)} className="w-full p-2 border rounded">
+              <option value="cash">Dinheiro</option>
+              <option value="credit">Cartão de Crédito</option>
+            </select>
+          </div>
+
+          {paymentType === 'credit' && (
+            <div className="space-y-2">
+              <Label htmlFor="card">Cartão</Label>
+              <select 
+                id="card"
+                value={selectedCard} 
+                onChange={e => setSelectedCard(e.target.value)} 
+                required
+                className="w-full p-2 border rounded"
+                disabled={cards.length === 0}
+              >
+                <option value="">
+                  {cards.length === 0 ? 'Nenhum cartão cadastrado' : 'Selecione o cartão'}
+                </option>
+                {cards.map(card => (
+                  <option key={card.id} value={card.id}>
+                    {card.nameCard}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>

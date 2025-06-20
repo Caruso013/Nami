@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useTransactions } from '@/hooks/useTransactions';
 
 export interface Budget {
   id: string;
@@ -15,6 +15,7 @@ export const useBudgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { transactions, fetchTransactions } = useTransactions();
 
   useEffect(() => {
     if (user) {
